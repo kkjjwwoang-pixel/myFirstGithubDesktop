@@ -3,147 +3,645 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firebase Test App</title>
+    <title>OTT 과잉 - 스크린은 여전히 이곳에 있습니다</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
+            font-family: 'Arial', sans-serif;
+            background: #000;
+            color: white;
+            overflow-x: hidden;
+            cursor: default;
+        }
+
+        /* 영화관 배경 레이어 */
+        .cinema-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23000"/><circle cx="50" cy="30" r="20" fill="%23333" opacity="0.1"/><rect x="20" y="80" width="60" height="15" fill="%23222" opacity="0.3"/></svg>') center/cover;
+            opacity: 0;
+            transition: opacity 2s ease;
+            z-index: -2;
+        }
+
+        .cinema-background.visible {
+            opacity: 0.3;
+        }
+
+        /* 메인 컨테이너 */
+        .main-container {
+            position: relative;
+            min-height: 200vh;
+            z-index: 1;
+        }
+
+        /* OTT 헤더 */
+        .ott-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 50%, transparent 100%);
+            padding: 20px 0;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        .ott-header.glitch {
+            animation: glitch 0.3s infinite;
+        }
+
+        @keyframes glitch {
+            0% { transform: translateX(0); }
+            20% { transform: translateX(-2px); }
+            40% { transform: translateX(2px); }
+            60% { transform: translateX(-1px); }
+            80% { transform: translateX(1px); }
+            100% { transform: translateX(0); }
+        }
+
+        .header-content {
+            max-width: 1200px;
             margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #e50914;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 30px;
+            list-style: none;
+        }
+
+        .nav-menu a {
+            color: white;
+            text-decoration: none;
+            font-size: 1.1rem;
+            transition: color 0.3s ease;
+        }
+
+        .nav-menu a:hover {
+            color: #e50914;
+        }
+
+        /* 추천 섹션 */
+        .recommendation-section {
+            padding: 120px 20px 50px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        .thumbnail-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 40px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+
+        .thumbnail {
+            min-width: 200px;
+            height: 300px;
+            background: linear-gradient(45deg, #333, #555);
+            border-radius: 8px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .thumbnail:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .thumbnail.falling {
+            position: fixed;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .thumbnail.destroyed {
+            animation: destroy 0.5s ease-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes destroy {
+            0% {
+                transform: scale(1) rotate(0deg);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.2) rotate(180deg);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(0) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .thumbnail-content {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
             padding: 20px;
-            line-height: 1.6;
-            background-color: #f4f4f4;
+            color: white;
         }
-        .container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+
+        .thumbnail-title {
+            font-size: 1rem;
+            font-weight: bold;
+            margin-bottom: 5px;
         }
-        h1 {
-            color: #333;
+
+        .thumbnail-info {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        /* 로딩 오버레이 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .loading-overlay.visible {
+            display: flex;
+        }
+
+        .loading-text {
+            font-size: 3rem;
+            color: #e50914;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* 엔딩 화면 */
+        .ending-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #1a1a1a, #2d2d2d);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 2000;
+            opacity: 0;
+            transition: opacity 2s ease;
+        }
+
+        .ending-screen.visible {
+            display: flex;
+            opacity: 1;
+        }
+
+        .ending-text {
+            font-size: 2rem;
             text-align: center;
+            margin-bottom: 50px;
+            color: #fff;
+            text-shadow: 0 0 20px rgba(255,255,255,0.5);
+        }
+
+        .cinema-seats {
+            display: flex;
+            gap: 20px;
             margin-bottom: 30px;
         }
-        .welcome {
-            background-color: #e8f4fd;
-            padding: 20px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            border-left: 4px solid #2196F3;
+
+        .seat {
+            width: 30px;
+            height: 30px;
+            background: #333;
+            border-radius: 4px;
+            animation: seat-light 2s ease-in-out infinite;
+            animation-delay: calc(var(--delay) * 0.1s);
         }
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-top: 30px;
+
+        @keyframes seat-light {
+            0%, 100% { background: #333; }
+            50% { background: #ffd700; box-shadow: 0 0 10px #ffd700; }
         }
-        .feature {
-            background-color: #f9f9f9;
-            padding: 20px;
-            border-radius: 5px;
-            text-align: center;
+
+        /* 커서 스타일 */
+        body.cinema-mode {
+            cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><circle cx="12" cy="12" r="10" fill="none" stroke="white" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="white"/></svg>') 12 12, pointer;
         }
-        .feature h3 {
-            color: #2196F3;
-            margin-bottom: 10px;
-        }
-        footer {
-            text-align: center;
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #ddd;
-            color: #666;
-        }
-        .firebase-status {
-            background-color: #d4edda;
-            border: 1px solid #c3e6cb;
-            color: #155724;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            text-align: center;
+
+        /* 반응형 */
+        @media (max-width: 768px) {
+            .thumbnail {
+                min-width: 150px;
+                height: 225px;
+            }
+            
+            .ending-text {
+                font-size: 1.5rem;
+            }
+            
+            .nav-menu {
+                gap: 15px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🔥 Firebase Test App</h1>
-        
-        <div class="firebase-status">
-            <h3>✅ Firebase 연결됨</h3>
-            <p>Firebase Analytics가 성공적으로 초기화되었습니다.</p>
-        </div>
-        
-        <div class="welcome">
-            <h2>환영합니다!</h2>
-            <p>이것은 Firebase가 연결된 기본 HTML 페이지입니다. 
-            Firebase Analytics를 통해 웹사이트 사용량을 추적할 수 있습니다.</p>
-        </div>
+    <!-- 영화관 배경 -->
+    <div class="cinema-background"></div>
 
-        <div class="features">
-            <div class="feature">
-                <h3>🔥 Firebase</h3>
-                <p>Google Firebase 서비스 연결</p>
+    <!-- 메인 컨테이너 -->
+    <div class="main-container">
+        <!-- OTT 헤더 -->
+        <header class="ott-header">
+            <div class="header-content">
+                <div class="logo">STREAMFLIX</div>
+                <nav>
+                    <ul class="nav-menu">
+                        <li><a href="#">홈</a></li>
+                        <li><a href="#">시리즈</a></li>
+                        <li><a href="#">영화</a></li>
+                        <li><a href="#">내가 찜한 콘텐츠</a></li>
+                    </ul>
+                </nav>
             </div>
-            <div class="feature">
-                <h3>📊 Analytics</h3>
-                <p>웹사이트 사용량 분석</p>
-            </div>
-            <div class="feature">
-                <h3>⚡ 실시간</h3>
-                <p>실시간 데이터베이스 기능</p>
-            </div>
-            <div class="feature">
-                <h3>🔐 인증</h3>
-                <p>사용자 인증 시스템</p>
-            </div>
-        </div>
+        </header>
 
-        <div style="margin-top: 30px; text-align: center;">
-            <p><strong>다음 단계:</strong></p>
-            <ul style="text-align: left; display: inline-block;">
-                <li>Firebase Authentication 추가</li>
-                <li>Firestore 데이터베이스 설정</li>
-                <li>실시간 기능 구현</li>
-                <li>호스팅 설정</li>
-            </ul>
+        <!-- 추천 섹션 -->
+        <section class="recommendation-section">
+            <h2 class="section-title">오늘의 인기 콘텐츠</h2>
+            <div class="thumbnail-row" id="popular-content">
+                <!-- 썸네일들이 동적으로 생성됩니다 -->
+            </div>
+
+            <h2 class="section-title">추천 영화</h2>
+            <div class="thumbnail-row" id="recommended-movies">
+                <!-- 썸네일들이 동적으로 생성됩니다 -->
+            </div>
+
+            <h2 class="section-title">최신 시리즈</h2>
+            <div class="thumbnail-row" id="latest-series">
+                <!-- 썸네일들이 동적으로 생성됩니다 -->
+            </div>
+
+            <h2 class="section-title">액션 & 어드벤처</h2>
+            <div class="thumbnail-row" id="action-adventure">
+                <!-- 썸네일들이 동적으로 생성됩니다 -->
+            </div>
+
+            <h2 class="section-title">로맨스</h2>
+            <div class="thumbnail-row" id="romance">
+                <!-- 썸네일들이 동적으로 생성됩니다 -->
+            </div>
+
+            <h2 class="section-title">공포 & 스릴러</h2>
+            <div class="thumbnail-row" id="horror-thriller">
+                <!-- 썸네일들이 동적으로 생성됩니다 -->
+            </div>
+
+            <h2 class="section-title">다큐멘터리</h2>
+            <div class="thumbnail-row" id="documentary">
+                <!-- 썸네일들이 동적으로 생성됩니다 -->
+            </div>
+
+            <h2 class="section-title">애니메이션</h2>
+            <div class="thumbnail-row" id="animation">
+                <!-- 썸네일들이 동적으로 생성됩니다 -->
+            </div>
+
+            <h2 class="section-title">클래식 영화</h2>
+            <div class="thumbnail-row" id="classic-movies">
+                <!-- 썸네일들이 동적으로 생성됩니다 -->
+            </div>
+
+            <h2 class="section-title">국제 영화</h2>
+            <div class="thumbnail-row" id="international-movies">
+                <!-- 썸네일들이 동적으로 생성됩니다 -->
+            </div>
+        </section>
+    </div>
+
+    <!-- 로딩 오버레이 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-text">LOADING...</div>
+    </div>
+
+    <!-- 엔딩 화면 -->
+    <div class="ending-screen" id="endingScreen">
+        <div class="ending-text">스크린은 여전히 이곳에 있습니다.</div>
+        <div class="cinema-seats">
+            <div class="seat" style="--delay: 0"></div>
+            <div class="seat" style="--delay: 1"></div>
+            <div class="seat" style="--delay: 2"></div>
+            <div class="seat" style="--delay: 3"></div>
+            <div class="seat" style="--delay: 4"></div>
+            <div class="seat" style="--delay: 5"></div>
+            <div class="seat" style="--delay: 6"></div>
+            <div class="seat" style="--delay: 7"></div>
         </div>
     </div>
 
-    <footer>
-        <p>© 2024 Firebase Test App. Made with 🔥 Firebase</p>
-    </footer>
-
-    <script type="module">
-        // Import the functions you need from the SDKs you need
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-analytics.js";
-        // TODO: Add SDKs for Firebase products that you want to use
-        // https://firebase.google.com/docs/web/setup#available-libraries
-
-        // Your web app's Firebase configuration
-        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-        const firebaseConfig = {
-            apiKey: "AIzaSyAiB8LvdKPSvFpKh8MDRPWM_RRArQ0Bidc",
-            authDomain: "dbtest-4f51a.firebaseapp.com",
-            projectId: "dbtest-4f51a",
-            storageBucket: "dbtest-4f51a.firebasestorage.app",
-            messagingSenderId: "339839540565",
-            appId: "1:339839540565:web:03f0d057baa9c6e8fa23dc",
-            measurementId: "G-4FL8HDPEDH"
+    <script>
+        // 콘텐츠 데이터
+        const contentData = {
+            'popular-content': [
+                { title: '기묘한 이야기', info: 'SF 미스터리', color: '#ff6b6b' },
+                { title: '왕좌의 게임', info: '판타지 드라마', color: '#4ecdc4' },
+                { title: '브레이킹 배드', info: '범죄 드라마', color: '#45b7d1' },
+                { title: '오징어 게임', info: '서바이벌', color: '#f9ca24' },
+                { title: '스트레인저 씽스', info: 'SF 호러', color: '#6c5ce7' }
+            ],
+            'recommended-movies': [
+                { title: '인셉션', info: 'SF 액션', color: '#a29bfe' },
+                { title: '인터스텔라', info: 'SF 드라마', color: '#fd79a8' },
+                { title: '다크 나이트', info: '액션', color: '#fdcb6e' },
+                { title: '매트릭스', info: 'SF 액션', color: '#e17055' },
+                { title: '블레이드 러너', info: 'SF 누아르', color: '#00b894' }
+            ],
+            'latest-series': [
+                { title: '위쳐', info: '판타지', color: '#74b9ff' },
+                { title: '맨더로리안', info: 'SF', color: '#0984e3' },
+                { title: '위키드', info: '뮤지컬', color: '#e84393' },
+                { title: '하우스 오브 카드', info: '정치 드라마', color: '#2d3436' },
+                { title: '오렌지 이즈 더 뉴 블랙', info: '코미디 드라마', color: '#fdcb6e' }
+            ],
+            'action-adventure': [
+                { title: '존 윅', info: '액션', color: '#636e72' },
+                { title: '미션 임파서블', info: '액션', color: '#2d3436' },
+                { title: '어벤져스', info: '슈퍼히어로', color: '#e17055' },
+                { title: '매드맥스', info: '포스트 아포칼립스', color: '#fdcb6e' },
+                { title: '007', info: '스파이 액션', color: '#00b894' }
+            ],
+            'romance': [
+                { title: '노트북', info: '로맨스', color: '#fd79a8' },
+                { title: '타이타닉', info: '로맨스 드라마', color: '#74b9ff' },
+                { title: '라라랜드', info: '뮤지컬 로맨스', color: '#fdcb6e' },
+                { title: '어바웃 타임', info: '로맨틱 코미디', color: '#00b894' },
+                { title: '500일의 썸머', info: '로맨틱 코미디', color: '#e84393' }
+            ],
+            'horror-thriller': [
+                { title: '컨저링', info: '호러', color: '#2d3436' },
+                { title: '겟 아웃', info: '스릴러', color: '#636e72' },
+                { title: '헤러시', info: '호러', color: '#2d3436' },
+                { title: '사일런스 오브 더 램스', info: '스릴러', color: '#636e72' },
+                { title: '엑소시스트', info: '호러', color: '#2d3436' }
+            ],
+            'documentary': [
+                { title: '아메리칸 팩토리', info: '다큐멘터리', color: '#00b894' },
+                { title: '13번째', info: '다큐멘터리', color: '#2d3436' },
+                { title: '아이카', info: '다큐멘터리', color: '#74b9ff' },
+                { title: '마인드헌터', info: '다큐멘터리', color: '#636e72' },
+                { title: '아웃사이더', info: '다큐멘터리', color: '#fd79a8' }
+            ],
+            'animation': [
+                { title: '토이 스토리', info: '애니메이션', color: '#fdcb6e' },
+                { title: '업', info: '애니메이션', color: '#74b9ff' },
+                { title: '코코', info: '애니메이션', color: '#fd79a8' },
+                { title: '모아나', info: '애니메이션', color: '#00b894' },
+                { title: '인사이드 아웃', info: '애니메이션', color: '#e84393' }
+            ],
+            'classic-movies': [
+                { title: '시민 케인', info: '클래식', color: '#636e72' },
+                { title: '카사블랑카', info: '클래식', color: '#2d3436' },
+                { title: '사이코', info: '클래식 호러', color: '#636e72' },
+                { title: '벤허', info: '클래식', color: '#2d3436' },
+                { title: '로마의 휴일', info: '클래식', color: '#74b9ff' }
+            ],
+            'international-movies': [
+                { title: '기생충', info: '한국 영화', color: '#e17055' },
+                { title: '올드보이', info: '한국 영화', color: '#2d3436' },
+                { title: '아마데우스', info: '체코 영화', color: '#fdcb6e' },
+                { title: '시네마 천국', info: '이탈리아 영화', color: '#74b9ff' },
+                { title: '7인의 사무라이', info: '일본 영화', color: '#636e72' }
+            ]
         };
 
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
+        // 전역 변수
+        let scrollY = 0;
+        let fallingThumbnails = [];
+        let destroyedCount = 0;
+        let totalThumbnails = 0;
+        let isGlitching = false;
+        let isEnding = false;
 
-        // Firebase 초기화 확인
-        console.log('Firebase App:', app);
-        console.log('Firebase Analytics:', analytics);
-        
-        // 페이지 로드 이벤트 추적
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Firebase가 성공적으로 초기화되었습니다!');
+        // 초기화
+        function init() {
+            createThumbnails();
+            setupEventListeners();
+            totalThumbnails = document.querySelectorAll('.thumbnail').length;
+        }
+
+        // 썸네일 생성
+        function createThumbnails() {
+            Object.keys(contentData).forEach(sectionId => {
+                const section = document.getElementById(sectionId);
+                if (section) {
+                    contentData[sectionId].forEach(item => {
+                        const thumbnail = createThumbnail(item);
+                        section.appendChild(thumbnail);
+                    });
+                }
+            });
+        }
+
+        // 개별 썸네일 생성
+        function createThumbnail(item) {
+            const thumbnail = document.createElement('div');
+            thumbnail.className = 'thumbnail';
+            thumbnail.style.background = `linear-gradient(45deg, ${item.color}, ${item.color}dd)`;
+            
+            thumbnail.innerHTML = `
+                <div class="thumbnail-content">
+                    <div class="thumbnail-title">${item.title}</div>
+                    <div class="thumbnail-info">${item.info}</div>
+                </div>
+            `;
+            
+            return thumbnail;
+        }
+
+        // 이벤트 리스너 설정
+        function setupEventListeners() {
+            window.addEventListener('scroll', handleScroll);
+            document.addEventListener('click', handleClick);
+        }
+
+        // 스크롤 핸들러
+        function handleScroll() {
+            if (isEnding) return;
+            
+            scrollY = window.scrollY;
+            
+            // Stage 1: 중력 애니메이션
+            if (scrollY > 100) {
+                startGravityAnimation();
+            }
+            
+            // Stage 2: 과부하 및 글리치
+            if (scrollY > 500 && !isGlitching) {
+                startGlitchEffect();
+            }
+            
+            // Stage 3: 영화관 배경 노출
+            if (destroyedCount > totalThumbnails * 0.3) {
+                showCinemaBackground();
+            }
+            
+            // Stage 4: 엔딩
+            if (destroyedCount > totalThumbnails * 0.8) {
+                showEnding();
+            }
+        }
+
+        // 중력 애니메이션 시작
+        function startGravityAnimation() {
+            const thumbnails = document.querySelectorAll('.thumbnail:not(.falling):not(.destroyed)');
+            thumbnails.forEach((thumbnail, index) => {
+                if (Math.random() < 0.1) { // 10% 확률로 낙하
+                    makeThumbnailFall(thumbnail);
+                }
+            });
+        }
+
+        // 썸네일 낙하
+        function makeThumbnailFall(thumbnail) {
+            const rect = thumbnail.getBoundingClientRect();
+            thumbnail.classList.add('falling');
+            thumbnail.style.left = rect.left + 'px';
+            thumbnail.style.top = rect.top + 'px';
+            
+            const fallSpeed = 0.5 + Math.random() * 0.5;
+            const fallThumbnail = {
+                element: thumbnail,
+                speed: fallSpeed,
+                x: rect.left,
+                y: rect.top
+            };
+            
+            fallingThumbnails.push(fallThumbnail);
+        }
+
+        // 낙하 애니메이션 업데이트
+        function updateFallingThumbnails() {
+            fallingThumbnails = fallingThumbnails.filter(thumb => {
+                thumb.y += thumb.speed;
+                thumb.element.style.transform = `translateY(${thumb.y}px)`;
+                
+                // 화면 하단에 도달하면 제거
+                if (thumb.y > window.innerHeight) {
+                    thumb.element.remove();
+                    return false;
+                }
+                return true;
+            });
+        }
+
+        // 글리치 효과 시작
+        function startGlitchEffect() {
+            isGlitching = true;
+            document.querySelector('.ott-header').classList.add('glitch');
+            document.getElementById('loadingOverlay').classList.add('visible');
+            
+            // CPU 팬 소리 시뮬레이션 (실제로는 사운드 파일 필요)
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').classList.remove('visible');
+                document.querySelector('.ott-header').classList.remove('glitch');
+                isGlitching = false;
+            }, 2000);
+        }
+
+        // 클릭 핸들러
+        function handleClick(e) {
+            if (isEnding) return;
+            
+            const thumbnail = e.target.closest('.thumbnail');
+            if (thumbnail && !thumbnail.classList.contains('destroyed')) {
+                destroyThumbnail(thumbnail);
+            }
+        }
+
+        // 썸네일 파괴
+        function destroyThumbnail(thumbnail) {
+            thumbnail.classList.add('destroyed');
+            destroyedCount++;
+            
+            // 파괴 사운드 효과 (실제로는 사운드 파일 필요)
+            // playSound('destroy');
+            
+            setTimeout(() => {
+                thumbnail.remove();
+            }, 500);
+        }
+
+        // 영화관 배경 표시
+        function showCinemaBackground() {
+            document.querySelector('.cinema-background').classList.add('visible');
+        }
+
+        // 엔딩 표시
+        function showEnding() {
+            if (isEnding) return;
+            
+            isEnding = true;
+            document.body.classList.add('cinema-mode');
+            document.getElementById('endingScreen').classList.add('visible');
+            
+            // 모든 클릭 이벤트 비활성화
+            document.removeEventListener('click', handleClick);
+            
+            // 엔딩 사운드 효과 (실제로는 사운드 파일 필요)
+            // playSound('ending');
+        }
+
+        // 애니메이션 루프
+        function animate() {
+            updateFallingThumbnails();
+            requestAnimationFrame(animate);
+        }
+
+        // 초기화 실행
+        document.addEventListener('DOMContentLoaded', () => {
+            init();
+            animate();
         });
     </script>
 </body>
